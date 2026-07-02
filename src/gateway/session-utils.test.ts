@@ -1632,6 +1632,50 @@ describe("gateway session utils", () => {
     });
   });
 
+  test("listAgentsForGateway exposes model-as-agent rows with linked skills", () => {
+    const cfg = {
+      session: { mainKey: "main" },
+      agents: {
+        defaults: {
+          workspace: "/tmp/default-workspace",
+          model: {
+            primary: "google-vertex/gemini-3-flash-preview",
+            fallbacks: ["openai/gpt-5.5", "ollama/qwen3.5:4b-32k"],
+          },
+          models: {
+            "google-vertex/gemini-3-flash-preview": {},
+            "openai/gpt-5.5": {},
+            "ollama/qwen3.5:4b-32k": {},
+          },
+          skills: ["global-skill"],
+          skillsByProvider: {
+            ollama: ["ollama-skill"],
+          },
+          skillsByModel: {
+            "ollama/qwen3.5:4b-32k": ["qwen-skill"],
+          },
+        },
+        list: [{ id: "main", default: true }],
+      },
+    } as OpenClawConfig;
+
+    const result = listAgentsForGateway(cfg);
+    const modelAgents = result.agents[0]?.modelAgents ?? [];
+
+    expect(modelAgents.map((entry) => entry.id)).toEqual([
+      "google-vertex/gemini-3-flash-preview",
+      "openai/gpt-5.5",
+      "ollama/qwen3.5:4b-32k",
+    ]);
+    expect(modelAgents.map((entry) => entry.role)).toEqual(["primary", "fallback", "fallback"]);
+    expect(modelAgents.find((entry) => entry.provider === "ollama")?.skills).toMatchObject({
+      global: ["global-skill"],
+      provider: ["ollama-skill"],
+      model: ["qwen-skill"],
+      effective: ["global-skill", "ollama-skill", "qwen-skill"],
+    });
+  });
+
   test("listAgentsForGateway reports explicit plugin runtime metadata", () => {
     const cfg = {
       session: { mainKey: "main" },

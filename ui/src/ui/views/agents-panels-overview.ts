@@ -9,6 +9,7 @@ import type {
 } from "../types.ts";
 import {
   buildModelOptions,
+  formatBytes,
   normalizeModelValue,
   parseFallbackList,
   resolveAgentConfig,
@@ -18,6 +19,107 @@ import {
   resolveModelPrimary,
 } from "./agents-utils.ts";
 import type { AgentsPanel } from "./agents.types.ts";
+
+type ModelAgent = NonNullable<AgentsListResult["agents"][number]["modelAgents"]>[number];
+
+function formatContextTokens(tokens: number | undefined): string {
+  return typeof tokens === "number" && Number.isFinite(tokens) ? formatBytes(tokens) : "-";
+}
+
+function formatModelAgentRole(modelAgent: ModelAgent): string {
+  if (modelAgent.role === "fallback" && modelAgent.roleIndex) {
+    return `fallback #${modelAgent.roleIndex}`;
+  }
+  return modelAgent.role;
+}
+
+function renderSkillList(skills: string[]) {
+  if (skills.length === 0) {
+    return html`<span class="muted">(none)</span>`;
+  }
+  return html`
+    <div class="agent-model-skill-chips">
+      ${skills.map((skill) => html`<span class="chip">${skill}</span>`)}
+    </div>
+  `;
+}
+
+function renderModelAgentDetails(modelAgent: ModelAgent) {
+  const skills = modelAgent.skills;
+  return html`
+    <div class="agent-model-agent-detail">
+      <div class="agents-overview-grid">
+        <div class="agent-kv">
+          <div class="label">Runtime</div>
+          <div class="mono">${resolveAgentRuntimeLabel(modelAgent.agentRuntime)}</div>
+        </div>
+        <div class="agent-kv">
+          <div class="label">Context</div>
+          <div class="mono">${formatContextTokens(modelAgent.contextTokens)}</div>
+        </div>
+        <div class="agent-kv">
+          <div class="label">Thinking default</div>
+          <div class="mono">${modelAgent.thinkingDefault ?? "-"}</div>
+        </div>
+        <div class="agent-kv">
+          <div class="label">Effective skills</div>
+          <div>${skills.effective.length}</div>
+        </div>
+      </div>
+
+      <div class="agent-model-skill-groups">
+        <div class="agent-model-skill-group">
+          <div class="label">Global</div>
+          ${renderSkillList(skills.global)}
+        </div>
+        <div class="agent-model-skill-group">
+          <div class="label">Provider${skills.providerKey ? ` · ${skills.providerKey}` : ""}</div>
+          ${renderSkillList(skills.provider)}
+        </div>
+        <div class="agent-model-skill-group">
+          <div class="label">Model${skills.modelKey ? ` · ${skills.modelKey}` : ""}</div>
+          ${renderSkillList(skills.model)}
+        </div>
+        <div class="agent-model-skill-group">
+          <div class="label">Effective</div>
+          ${renderSkillList(skills.effective)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderModelAgents(modelAgents: ModelAgent[]) {
+  if (modelAgents.length === 0) {
+    return html`
+      <div class="muted" style="margin-top: 10px;">
+        No configured models are available for this agent.
+      </div>
+    `;
+  }
+  return html`
+    <div class="agent-model-agents-list">
+      ${modelAgents.map(
+        (modelAgent, index) => html`
+          <details class="agent-model-agent" ?open=${index === 0}>
+            <summary>
+              <span class="agent-model-agent-main">
+                <span class="agent-model-agent-name mono">${modelAgent.label}</span>
+                <span class="agent-model-agent-provider">${modelAgent.provider}</span>
+              </span>
+              <span class="agent-model-agent-meta">
+                <span>${formatModelAgentRole(modelAgent)}</span>
+                <span>${resolveAgentRuntimeLabel(modelAgent.agentRuntime)}</span>
+                <span>${modelAgent.skills.effective.length} skills</span>
+              </span>
+            </summary>
+            ${renderModelAgentDetails(modelAgent)}
+          </details>
+        `,
+      )}
+    </div>
+  `;
+}
 
 export function renderAgentOverview(params: {
   agent: AgentsListResult["agents"][number];
@@ -85,6 +187,7 @@ export function renderAgentOverview(params: {
   const skillCount = skillFilter?.length ?? null;
   const disabled = !configForm || configLoading || configSaving;
   const thinkingDefault = agent.thinkingDefault ?? "-";
+  const modelAgents = agent.modelAgents ?? [];
 
   const removeChip = (index: number) => {
     const next = fallbackChips.filter((_, i) => i !== index);
@@ -147,6 +250,16 @@ export function renderAgentOverview(params: {
             </div>
           `
         : nothing}
+
+      <div class="agent-model-agents" style="margin-top: 20px;">
+        <div class="agent-section-heading">
+          <div>
+            <div class="label">Model agents</div>
+            <div class="muted">Configured model access and linked skills for this agent.</div>
+          </div>
+        </div>
+        ${renderModelAgents(modelAgents)}
+      </div>
 
       <div class="agent-model-select" style="margin-top: 20px;">
         <div class="label">Model Selection</div>

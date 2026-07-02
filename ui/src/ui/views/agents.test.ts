@@ -303,6 +303,82 @@ describe("renderAgents", () => {
     expect(thinkingKv?.textContent).toContain("xhigh");
   });
 
+  it("renders model-as-agent access with linked skill detail", async () => {
+    const container = document.createElement("div");
+
+    render(
+      renderAgents(
+        createProps({
+          agentsList: {
+            defaultId: "alpha",
+            mainKey: "main",
+            scope: "workspace",
+            agents: [
+              {
+                id: "alpha",
+                name: "Alpha",
+                modelAgents: [
+                  {
+                    id: "google-vertex/gemini-3-flash-preview",
+                    provider: "google-vertex",
+                    model: "gemini-3-flash-preview",
+                    label: "google-vertex/gemini-3-flash-preview",
+                    role: "primary",
+                    agentRuntime: { id: "openclaw", source: "implicit" },
+                    thinkingDefault: "medium",
+                    skills: {
+                      global: ["global-skill"],
+                      provider: [],
+                      model: [],
+                      effective: ["global-skill"],
+                    },
+                  },
+                  {
+                    id: "ollama/qwen3.5:4b-32k",
+                    provider: "ollama",
+                    model: "qwen3.5:4b-32k",
+                    label: "ollama/qwen3.5:4b-32k",
+                    role: "fallback",
+                    roleIndex: 2,
+                    agentRuntime: { id: "openclaw", source: "implicit" },
+                    thinkingDefault: "off",
+                    skills: {
+                      global: ["global-skill"],
+                      provider: ["telegram-context-footer"],
+                      providerKey: "ollama",
+                      model: ["qwen-obsidian-continuity"],
+                      modelKey: "ollama/qwen3.5:4b-32k",
+                      effective: [
+                        "global-skill",
+                        "telegram-context-footer",
+                        "qwen-obsidian-continuity",
+                      ],
+                    },
+                  },
+                ],
+              } as never,
+            ],
+          },
+          selectedAgentId: "alpha",
+        }),
+      ),
+      container,
+    );
+
+    await Promise.resolve();
+
+    const modelRows = container.querySelectorAll("details.agent-model-agent");
+    expect(modelRows).toHaveLength(2);
+    expect(modelRows[0]?.querySelector(".agent-model-agent-name")?.textContent).toContain(
+      "google-vertex/gemini-3-flash-preview",
+    );
+    expect(modelRows[1]?.querySelector(".agent-model-agent-meta")?.textContent).toContain(
+      "fallback #2",
+    );
+    expect(modelRows[1]?.textContent).toContain("telegram-context-footer");
+    expect(modelRows[1]?.textContent).toContain("qwen-obsidian-continuity");
+  });
+
   it("shows the skills count only for the selected agent's report", async () => {
     const container = document.createElement("div");
     render(

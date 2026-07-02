@@ -12,6 +12,7 @@ import type { FastModeSource } from "../shared/fast-mode.js";
 import type {
   GatewayAgentRuntime,
   GatewayAgentRow as SharedGatewayAgentRow,
+  GatewayModelAgentRow,
   GatewayThinkingLevelOption,
   SessionsListResultBase,
   SessionsPatchResultBase,
@@ -116,6 +117,7 @@ export type GatewaySessionRow = {
 };
 
 export type GatewayAgentRow = SharedGatewayAgentRow;
+export type { GatewayModelAgentRow };
 
 export type SessionPreviewItem = {
   role: "user" | "assistant" | "tool" | "system" | "other";

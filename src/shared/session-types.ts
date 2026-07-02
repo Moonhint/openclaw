@@ -20,6 +20,30 @@ export type GatewayAgentRuntime = {
   source: "env" | "agent" | "defaults" | "model" | "provider" | "implicit" | "session-key";
 };
 
+export type GatewayAgentSkillRules = {
+  global: string[];
+  provider: string[];
+  model: string[];
+  providerKey?: string;
+  modelKey?: string;
+  effective: string[];
+};
+
+export type GatewayModelAgentRow = {
+  id: string;
+  provider: string;
+  model: string;
+  label: string;
+  role: "primary" | "fallback" | "configured";
+  roleIndex?: number;
+  agentRuntime?: GatewayAgentRuntime;
+  contextTokens?: number;
+  thinkingLevels?: GatewayThinkingLevelOption[];
+  thinkingOptions?: string[];
+  thinkingDefault?: string;
+  skills: GatewayAgentSkillRules;
+};
+
 /** Thinking-level option exposed to UI clients. */
 export type GatewayThinkingLevelOption = {
   id: string;
@@ -33,6 +57,7 @@ export type GatewayAgentRow = {
   identity?: GatewayAgentIdentity;
   workspace?: string;
   model?: GatewayAgentModel;
+  modelAgents?: GatewayModelAgentRow[];
   agentRuntime?: GatewayAgentRuntime;
   thinkingLevels?: GatewayThinkingLevelOption[];
   thinkingOptions?: string[];

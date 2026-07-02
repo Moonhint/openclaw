@@ -108,6 +108,7 @@ import {
 } from "./session-transcript-readers.js";
 import type {
   GatewayAgentRow,
+  GatewayModelAgentRow,
   GatewaySessionRow,
   GatewaySessionsDefaults,
   SessionsListResult,
@@ -1248,6 +1249,126 @@ function resolveGatewayAgentModel(
   };
 }
 
+function resolveModelAgentRef(raw: string): { provider: string; model: string } | null {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return (
+    parseModelRef(trimmed, DEFAULT_PROVIDER, { allowPluginNormalization: true }) ?? {
+      provider: DEFAULT_PROVIDER,
+      model: trimmed,
+    }
+  );
+}
+
+function addModelAgentCandidate(
+  candidates: Map<string, { raw: string; role: GatewayModelAgentRow["role"]; roleIndex?: number }>,
+  raw: string | undefined,
+  role: GatewayModelAgentRow["role"],
+  roleIndex?: number,
+) {
+  const rawValue = raw?.trim();
+  if (!rawValue) {
+    return;
+  }
+  const ref = resolveModelAgentRef(rawValue);
+  if (!ref) {
+    return;
+  }
+  const key = `${ref.provider}/${ref.model}`;
+  const existing = candidates.get(key);
+  if (existing) {
+    if (existing.role !== "primary" && role === "primary") {
+      candidates.set(key, {
+        raw: rawValue,
+        role,
+        ...(roleIndex !== undefined ? { roleIndex } : {}),
+      });
+    }
+    return;
+  }
+  candidates.set(key, { raw: rawValue, role, ...(roleIndex !== undefined ? { roleIndex } : {}) });
+}
+
+function listGatewayModelAgents(params: {
+  cfg: OpenClawConfig;
+  agentId: string;
+  model?: GatewayAgentRow["model"];
+  modelCatalog?: ModelCatalogEntry[];
+}): GatewayModelAgentRow[] {
+  const candidates = new Map<
+    string,
+    { raw: string; role: GatewayModelAgentRow["role"]; roleIndex?: number }
+  >();
+  addModelAgentCandidate(candidates, params.model?.primary, "primary");
+  for (const [index, fallback] of (params.model?.fallbacks ?? []).entries()) {
+    addModelAgentCandidate(candidates, fallback, "fallback", index + 1);
+  }
+
+  const agentEntry = params.cfg.agents?.list?.find(
+    (entry) => entry?.id && normalizeAgentId(entry.id) === params.agentId,
+  );
+  const configuredModels = {
+    ...(params.cfg.agents?.defaults?.models ?? {}),
+    ...(agentEntry?.models ?? {}),
+  };
+  for (const modelKey of Object.keys(configuredModels)) {
+    addModelAgentCandidate(candidates, modelKey, "configured");
+  }
+
+  return Array.from(candidates.values()).flatMap((candidate) => {
+    const ref = resolveModelAgentRef(candidate.raw);
+    if (!ref) {
+      return [];
+    }
+    const skills = resolveEffectiveAgentSkillRules(params.cfg, params.agentId, ref);
+    const thinkingLevels = listThinkingLevelOptions(ref.provider, ref.model, params.modelCatalog);
+    const contextTokens = resolvePositiveNumber(
+      resolveContextTokensForModel({
+        cfg: params.cfg,
+        provider: ref.provider,
+        model: ref.model,
+        allowAsyncLoad: false,
+      }),
+    );
+    return [
+      {
+        id: `${ref.provider}/${ref.model}`,
+        provider: ref.provider,
+        model: ref.model,
+        label: `${ref.provider}/${ref.model}`,
+        role: candidate.role,
+        ...(candidate.roleIndex !== undefined ? { roleIndex: candidate.roleIndex } : {}),
+        agentRuntime: resolveModelAgentRuntimeMetadata({
+          cfg: params.cfg,
+          agentId: params.agentId,
+          provider: ref.provider,
+          model: ref.model,
+          sessionKey: resolveAgentMainSessionKey({ cfg: params.cfg, agentId: params.agentId }),
+          acpRuntime: false,
+        }),
+        ...(contextTokens ? { contextTokens } : {}),
+        thinkingLevels,
+        thinkingOptions: thinkingLevels.map((level) => level.label),
+        thinkingDefault: resolveGatewaySessionThinkingDefault({
+          cfg: params.cfg,
+          provider: ref.provider,
+          model: ref.model,
+          agentId: params.agentId,
+          modelCatalog: params.modelCatalog,
+        }),
+        skills: skills ?? {
+          global: [],
+          provider: [],
+          model: [],
+          effective: [],
+        },
+      },
+    ];
+  });
+}
+
 export function listAgentsForGateway(
   cfg: OpenClawConfig,
   modelCatalog?: ModelCatalogEntry[],
@@ -1319,6 +1440,12 @@ export function listAgentsForGateway(
           model: resolvedModel.model,
           sessionKey: resolveAgentMainSessionKey({ cfg, agentId: id }),
           acpRuntime: false,
+        }),
+        modelAgents: listGatewayModelAgents({
+          cfg,
+          agentId: id,
+          model,
+          modelCatalog,
         }),
         thinkingLevels,
         thinkingOptions: thinkingLevels.map((level) => level.label),

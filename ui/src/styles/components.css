@@ -4824,6 +4824,104 @@ td.data-table-key-col {
   gap: 10px;
 }
 
+.agent-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agent-model-agents {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-model-agents-list {
+  display: grid;
+  gap: 8px;
+}
+
+.agent-model-agent {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-accent);
+  overflow: clip;
+}
+
+.agent-model-agent summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.agent-model-agent summary::-webkit-details-marker {
+  display: none;
+}
+
+.agent-model-agent summary:hover {
+  background: var(--bg-hover);
+}
+
+.agent-model-agent-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.agent-model-agent-name,
+.agent-model-agent-provider {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.agent-model-agent-provider {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.agent-model-agent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.agent-model-agent-meta span {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.agent-model-agent-detail {
+  display: grid;
+  gap: 14px;
+  padding: 0 12px 12px;
+}
+
+.agent-model-skill-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-model-skill-group {
+  display: grid;
+  gap: 6px;
+}
+
+.agent-model-skill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .agent-model-fields {
   display: grid;
   gap: 10px;
