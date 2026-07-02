@@ -506,6 +506,14 @@ export type GatewaySessionRow = {
   childSessions?: string[];
   model?: string;
   modelProvider?: string;
+  skills?: {
+    global: string[];
+    provider: string[];
+    model: string[];
+    providerKey?: string;
+    modelKey?: string;
+    effective: string[];
+  };
   agentRuntime?: GatewayAgentRuntime;
   contextTokens?: number;
   compactionCheckpointCount?: number;

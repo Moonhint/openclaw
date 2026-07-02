@@ -64,8 +64,8 @@ function resolveNativeUserHomeDir(): string | undefined {
 }
 
 function resolveCompactHomePrefixes(): string[] {
-  const homes = [resolveUserHomeDir(), resolveNativeUserHomeDir()].filter(
-    (home): home is string => Boolean(home),
+  const homes = [resolveUserHomeDir(), resolveNativeUserHomeDir()].filter((home): home is string =>
+    Boolean(home),
   );
   const resolvedHomes = homes.map((home) => path.resolve(home));
   const realHomes = resolvedHomes
@@ -111,15 +111,15 @@ function resolvePromptTildeRoots(): string[] {
     return [];
   }
   const realNativeHome = tryRealpath(resolvedNativeHome);
-  return uniqueStrings([
-    resolvedNativeHome,
-    ...(realNativeHome ? [realNativeHome] : []),
-  ]);
+  return uniqueStrings([resolvedNativeHome, ...(realNativeHome ? [realNativeHome] : [])]);
 }
 
 function isContainerStateHomeWherePromptTildeEscapes(home: string): boolean {
   const configDir = path.resolve(resolveConfigDir());
-  return home === "/data" && (configDir === "/data/.openclaw" || isPathInside("/data/.openclaw", configDir));
+  return (
+    home === "/data" &&
+    (configDir === "/data/.openclaw" || isPathInside("/data/.openclaw", configDir))
+  );
 }
 
 function shouldPreservePromptSkillPath(
@@ -1439,6 +1439,8 @@ type WorkspaceSkillBuildOptions = {
   bundledSkillsDir?: string;
   entries?: SkillEntry[];
   agentId?: string;
+  provider?: string;
+  model?: string;
   /** If provided, only include skills with these names */
   skillFilter?: string[];
   eligibility?: SkillEligibilityContext;
@@ -1453,7 +1455,10 @@ function resolveEffectiveWorkspaceSkillFilter(
   if (!opts?.config || !opts.agentId) {
     return undefined;
   }
-  return resolveEffectiveAgentSkillFilter(opts.config, opts.agentId);
+  return resolveEffectiveAgentSkillFilter(opts.config, opts.agentId, {
+    provider: opts.provider,
+    model: opts.model,
+  });
 }
 
 function resolveWorkspaceSkillPromptState(
@@ -1506,6 +1511,8 @@ export function resolveSkillsPromptForRun(params: {
   config?: OpenClawConfig;
   workspaceDir: string;
   agentId?: string;
+  provider?: string;
+  model?: string;
   eligibility?: SkillEligibilityContext;
 }): string {
   const snapshotPrompt = params.skillsSnapshot?.prompt?.trim();
@@ -1517,6 +1524,8 @@ export function resolveSkillsPromptForRun(params: {
       entries: params.entries,
       config: params.config,
       agentId: params.agentId,
+      provider: params.provider,
+      model: params.model,
       eligibility: params.eligibility,
     });
     return prompt.trim() ? prompt : "";

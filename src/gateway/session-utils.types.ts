@@ -94,6 +94,14 @@ export type GatewaySessionRow = {
   responseUsage?: "on" | "off" | "tokens" | "full";
   modelProvider?: string;
   model?: string;
+  skills?: {
+    global: string[];
+    provider: string[];
+    model: string[];
+    providerKey?: string;
+    modelKey?: string;
+    effective: string[];
+  };
   agentRuntime?: GatewayAgentRuntime;
   contextTokens?: number;
   contextBudgetStatus?: SessionEntry["contextBudgetStatus"];

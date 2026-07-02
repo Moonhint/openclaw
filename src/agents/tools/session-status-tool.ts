@@ -32,6 +32,7 @@ import {
 } from "../../routing/session-key.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import { createLazyImportLoader } from "../../shared/lazy-promise.js";
+import { resolveEffectiveAgentSkillRules } from "../../skills/discovery/agent-filter.js";
 import type { BuildStatusTextParams } from "../../status/status-text.types.js";
 import { buildTaskStatusSnapshotForRelatedSessionKeyForOwner } from "../../tasks/task-owner-access.js";
 import { formatTaskStatusDetail, formatTaskStatusTitle } from "../../tasks/task-status.js";
@@ -407,6 +408,31 @@ function formatSessionTaskLine(params: {
   const detail = formatTaskStatusDetail(task);
   const parts = [headline, task.runtime, title, detail].filter(Boolean);
   return parts.length ? `📌 Tasks: ${parts.join(" · ")}` : undefined;
+}
+
+function formatSessionSkillsLine(params: {
+  cfg: OpenClawConfig;
+  agentId: string;
+  provider?: string;
+  model?: string;
+}): string | undefined {
+  const skills = resolveEffectiveAgentSkillRules(params.cfg, params.agentId, {
+    provider: params.provider,
+    model: params.model,
+  });
+  if (!skills) {
+    return undefined;
+  }
+  const effectiveLabel = skills.effective.length ? skills.effective.join(", ") : "(none)";
+  const scoped: string[] = [];
+  if (skills.providerKey) {
+    scoped.push(`provider:${skills.providerKey} ${skills.provider.length}`);
+  }
+  if (skills.modelKey) {
+    scoped.push(`model:${skills.modelKey} ${skills.model.length}`);
+  }
+  const scopedLabel = scoped.length ? ` · ${scoped.join(" · ")}` : "";
+  return `🧩 Skills: ${effectiveLabel}${scopedLabel}`;
 }
 
 async function resolveModelOverride(params: {
@@ -915,8 +941,20 @@ export function createSessionStatusTool(opts?: {
         ...(providerForCard ? {} : { modelAuthOverride: undefined }),
         includeTranscriptUsage: true,
       });
+      const skillsLine = formatSessionSkillsLine({
+        cfg,
+        agentId,
+        provider: providerForCard,
+        model: defaultModelForCard,
+      });
+      const statusTextWithSkills =
+        skillsLine && !statusText.includes(skillsLine)
+          ? `${statusText}\n${skillsLine}`
+          : statusText;
       const fullStatusText =
-        taskLine && !statusText.includes(taskLine) ? `${statusText}\n${taskLine}` : statusText;
+        taskLine && !statusTextWithSkills.includes(taskLine)
+          ? `${statusTextWithSkills}\n${taskLine}`
+          : statusTextWithSkills;
       const resultOverrideProvider = statusSessionEntry.providerOverride?.trim();
       const resultOverrideModel = statusSessionEntry.modelOverride?.trim();
       const liveSessionKeySet = new Set(

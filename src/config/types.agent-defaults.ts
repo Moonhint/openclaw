@@ -258,6 +258,10 @@ export type AgentDefaultsConfig = {
   workspace?: string;
   /** Optional default allowlist of skills for agents that do not set agents.list[].skills. */
   skills?: string[];
+  /** Optional default skills enabled only when the active model provider matches. */
+  skillsByProvider?: Record<string, string[]>;
+  /** Optional default skills enabled only when the active provider/model key matches. */
+  skillsByModel?: Record<string, string[]>;
   /** Silent-reply policy by conversation type. */
   silentReply?: SilentReplyPolicyShape;
   /** Optional repository root for system prompt runtime line (overrides auto-detect). */

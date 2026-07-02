@@ -430,6 +430,18 @@ function sessionDetailItems(params: {
   add(t("sessionsView.goalNote"), row.goal?.lastStatusNote);
   add(t("sessionsView.model"), row.model);
   add(t("sessionsView.provider"), row.modelProvider);
+  if (row.skills) {
+    add("Skills active", row.skills.effective.length ? row.skills.effective.join(", ") : "(none)");
+    add("Skills global", row.skills.global.length ? row.skills.global.join(", ") : "(none)");
+    add(
+      row.skills.providerKey ? `Skills provider ${row.skills.providerKey}` : "Skills provider",
+      row.skills.provider.length ? row.skills.provider.join(", ") : "(none)",
+    );
+    add(
+      row.skills.modelKey ? `Skills model ${row.skills.modelKey}` : "Skills model",
+      row.skills.model.length ? row.skills.model.join(", ") : "(none)",
+    );
+  }
   add(t("sessionsView.runtime"), formatRuntimeMs(row.runtimeMs));
   add(t("sessionsView.surface"), row.surface);
   add(t("sessionsView.subject"), row.subject);

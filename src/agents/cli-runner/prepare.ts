@@ -113,6 +113,8 @@ const prepareDeps = {
 async function resolveCliSkillsPrompt(params: {
   agentId: string;
   config: RunCliAgentParams["config"];
+  provider?: string;
+  model?: string;
   sessionKey: string;
   skillsSnapshot: RunCliAgentParams["skillsSnapshot"];
   workspaceDir: string;
@@ -128,6 +130,8 @@ async function resolveCliSkillsPrompt(params: {
       workspaceDir: params.workspaceDir,
       config: params.config,
       agentId: params.agentId,
+      provider: params.provider,
+      model: params.model,
     });
   }
 
@@ -175,6 +179,8 @@ async function resolveCliSkillsPrompt(params: {
     workspaceDir: skillsPromptWorkspaceDir,
     config: params.config,
     agentId: params.agentId,
+    provider: params.provider,
+    model: params.model,
     eligibility: skillsEligibility,
   });
 }
@@ -671,6 +677,8 @@ export async function prepareCliRunContext(
           workspaceDir,
           config: params.config,
           agentId: sessionAgentId,
+          provider: params.provider,
+          model: params.model,
           sessionKey: params.sessionKey?.trim() || params.sessionId,
         });
   const runtimeChannel = isSideQuestion

@@ -1135,6 +1135,8 @@ export async function runEmbeddedAttempt(
       config: params.config,
       workspaceDir: effectiveSkillsPromptWorkspace,
       agentId: sessionAgentId,
+      provider: params.provider,
+      model: params.modelId,
       eligibility: skillsEligibility,
     });
     prepStages.mark("skills");

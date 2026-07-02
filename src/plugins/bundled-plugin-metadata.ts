@@ -301,6 +301,14 @@ function listBundledPluginEntrySearchPaths(
   return uniqueStrings(paths);
 }
 
+function tryRealpathForBundledPluginEntry(value: string): string {
+  try {
+    return fs.realpathSync.native(value);
+  } catch {
+    return path.normalize(value);
+  }
+}
+
 /** Resolves a generated runtime path for a bundled plugin entry. */
 export function resolveBundledPluginGeneratedPath(
   rootDir: string,
@@ -310,6 +318,30 @@ export function resolveBundledPluginGeneratedPath(
 ): string | null {
   if (!entry) {
     return null;
+  }
+  const rootsForAbsoluteEntries = uniqueStrings([
+    ...listBundledPluginEntryRoots({
+      rootDir,
+      pluginDirName,
+      ...(scanDir ? { scanDir } : {}),
+    }),
+    ...listBundledPluginEntryBaseDirs({
+      rootDir,
+      pluginDirName,
+      ...(scanDir ? { scanDir } : {}),
+    }),
+  ]).map((root) => tryRealpathForBundledPluginEntry(path.resolve(root)));
+  for (const rawEntry of [entry.built, entry.source]) {
+    if (typeof rawEntry !== "string" || !path.isAbsolute(rawEntry)) {
+      continue;
+    }
+    const resolvedEntry = tryRealpathForBundledPluginEntry(rawEntry);
+    if (!fs.existsSync(resolvedEntry)) {
+      continue;
+    }
+    if (rootsForAbsoluteEntries.some((root) => isPathInsideRoot(root, resolvedEntry))) {
+      return resolvedEntry;
+    }
   }
   const entryOrder = listBundledPluginEntrySearchPaths(entry, {
     rootDir,

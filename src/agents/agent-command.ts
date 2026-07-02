@@ -1179,62 +1179,12 @@ async function agentCommandInternal(
       });
     }
 
-    const skillFilter = resolveEffectiveAgentSkillFilter(cfg, sessionAgentId);
     const currentSkillsSnapshot = sessionEntry?.skillsSnapshot;
     const [
       { getRemoteSkillEligibility, resolveReusableWorkspaceSkillSnapshot },
       { canExecRequestNode },
     ] = await Promise.all([loadSkillsRuntime(), loadExecDefaultsRuntime()]);
-    const skillSnapshotState = resolveReusableWorkspaceSkillSnapshot({
-      workspaceDir,
-      config: cfg,
-      agentId: sessionAgentId,
-      existingSnapshot: isNewSession ? undefined : currentSkillsSnapshot,
-      skillFilter,
-      eligibility: {
-        remote: getRemoteSkillEligibility({
-          advertiseExecNode: canExecRequestNode({
-            cfg,
-            sessionEntry,
-            sessionKey,
-            agentId: sessionAgentId,
-          }),
-        }),
-      },
-      watch: false,
-    });
-    const needsSkillsSnapshot =
-      isNewSession || !currentSkillsSnapshot || skillSnapshotState.shouldRefresh;
-    const skillsSnapshot = skillSnapshotState.snapshot;
-
-    if (
-      skillsSnapshot &&
-      sessionStore &&
-      sessionKey &&
-      needsSkillsSnapshot &&
-      !suppressVisibleSessionEffects
-    ) {
-      const now = Date.now();
-      const current = sessionEntry ?? {
-        sessionId,
-        updatedAt: now,
-        sessionStartedAt: now,
-      };
-      const next: SessionEntry = {
-        ...current,
-        sessionId,
-        updatedAt: now,
-        sessionStartedAt: current.sessionStartedAt ?? now,
-        skillsSnapshot,
-      };
-      await persistSessionEntry({
-        sessionStore,
-        sessionKey,
-        storePath,
-        entry: next,
-      });
-      sessionEntry = next;
-    }
+    let skillsSnapshot = currentSkillsSnapshot;
 
     // Persist explicit /command overrides to the session store when we have a key.
     const hasInitialSessionOverrides = Boolean(thinkOverride || verboseOverride);
@@ -1528,6 +1478,58 @@ async function agentCommandInternal(
     });
 
     let sessionEntryForAttempt = autoFallbackPrimaryProbeSessionEntry ?? sessionEntry;
+    const skillFilter = resolveEffectiveAgentSkillFilter(cfg, sessionAgentId, { provider, model });
+    const skillSnapshotState = resolveReusableWorkspaceSkillSnapshot({
+      workspaceDir,
+      config: cfg,
+      agentId: sessionAgentId,
+      existingSnapshot: isNewSession ? undefined : currentSkillsSnapshot,
+      skillFilter,
+      eligibility: {
+        remote: getRemoteSkillEligibility({
+          advertiseExecNode: canExecRequestNode({
+            cfg,
+            sessionEntry,
+            sessionKey,
+            agentId: sessionAgentId,
+          }),
+        }),
+      },
+      watch: false,
+    });
+    const needsSkillsSnapshot =
+      isNewSession || !currentSkillsSnapshot || skillSnapshotState.shouldRefresh;
+    skillsSnapshot = skillSnapshotState.snapshot;
+
+    if (
+      skillsSnapshot &&
+      sessionStore &&
+      sessionKey &&
+      needsSkillsSnapshot &&
+      !suppressVisibleSessionEffects
+    ) {
+      const now = Date.now();
+      const current = sessionEntry ?? {
+        sessionId,
+        updatedAt: now,
+        sessionStartedAt: now,
+      };
+      const next: SessionEntry = {
+        ...current,
+        sessionId,
+        updatedAt: now,
+        sessionStartedAt: current.sessionStartedAt ?? now,
+        skillsSnapshot,
+      };
+      await persistSessionEntry({
+        sessionStore,
+        sessionKey,
+        storePath,
+        entry: next,
+      });
+      sessionEntry = next;
+      sessionEntryForAttempt = autoFallbackPrimaryProbeSessionEntry ?? sessionEntry;
+    }
     if (sessionEntryForAttempt) {
       const authProfileId = sessionEntryForAttempt.authProfileOverride;
       if (authProfileId) {

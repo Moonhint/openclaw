@@ -27,6 +27,7 @@ import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import { classifySessionKind, type SessionKind } from "../sessions/classify-session-kind.js";
 import { isAcpSessionKey } from "../sessions/session-key-utils.js";
 import { createLazyImportLoader } from "../shared/lazy-promise.js";
+import { resolveEffectiveAgentSkillRules } from "../skills/discovery/agent-filter.js";
 import { resolveAgentRuntimeLabel } from "../status/agent-runtime-label.js";
 import { resolveSessionStoreTargetsOrExit } from "./session-store-targets.js";
 import {
@@ -403,6 +404,7 @@ export async function sessionsCommand(
           acpRuntime,
           agentRuntime,
           kind: classifySessionKind(row.key, entry),
+          skills: resolveEffectiveAgentSkillRules(cfg, agentId, modelRef),
           runtimePolicySessionKey: resolveDisplayRuntimePolicySessionKey({
             cfg,
             key: row.key,

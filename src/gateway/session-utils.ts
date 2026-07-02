@@ -91,6 +91,7 @@ import {
   isWorkspaceRelativeAvatarPath,
   resolveAvatarMime,
 } from "../shared/avatar-policy.js";
+import { resolveEffectiveAgentSkillRules } from "../skills/discovery/agent-filter.js";
 import { normalizeSessionDeliveryFields } from "../utils/delivery-context.shared.js";
 import type { ModelCostConfig } from "../utils/usage-format.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../utils/usage-format.js";
@@ -2108,6 +2109,10 @@ export function buildGatewaySessionRow(params: {
       });
   const rowModelProvider = rowModelIdentity.provider;
   const rowModel = rowModelIdentity.model;
+  const skills = resolveEffectiveAgentSkillRules(cfg, sessionAgentId, {
+    provider: rowModelProvider,
+    model: rowModel,
+  });
   const acpSessionKey = resolveStoredSessionKeyForAgentStore({
     cfg,
     agentId: sessionAgentId,
@@ -2252,6 +2257,7 @@ export function buildGatewaySessionRow(params: {
     responseUsage: entry?.responseUsage,
     modelProvider: rowModelProvider,
     model: rowModel,
+    ...(skills ? { skills } : {}),
     agentRuntime,
     contextTokens,
     contextBudgetStatus: entry?.contextBudgetStatus,
