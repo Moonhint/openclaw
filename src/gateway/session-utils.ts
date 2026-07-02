@@ -1322,7 +1322,15 @@ function listGatewayModelAgents(params: {
     if (!ref) {
       return [];
     }
-    const skills = resolveEffectiveAgentSkillRules(params.cfg, params.agentId, ref);
+    const skills = resolveEffectiveAgentSkillRules(params.cfg, params.agentId, ref) ?? {
+      global: [],
+      provider: [],
+      model: [],
+      disabledProvider: [],
+      disabledModel: [],
+      disabled: [],
+      effective: [],
+    };
     const thinkingLevels = listThinkingLevelOptions(ref.provider, ref.model, params.modelCatalog);
     const contextTokens = resolvePositiveNumber(
       resolveContextTokensForModel({

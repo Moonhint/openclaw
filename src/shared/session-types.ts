@@ -24,8 +24,13 @@ export type GatewayAgentSkillRules = {
   global: string[];
   provider: string[];
   model: string[];
+  disabledProvider: string[];
+  disabledModel: string[];
+  disabled: string[];
   providerKey?: string;
   modelKey?: string;
+  disabledProviderKey?: string;
+  disabledModelKey?: string;
   effective: string[];
 };
 

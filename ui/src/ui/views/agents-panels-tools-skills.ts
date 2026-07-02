@@ -4,6 +4,7 @@ import { normalizeToolName } from "../../../../src/agents/tool-policy-shared.js"
 import { t } from "../../i18n/index.ts";
 import { normalizeLowercaseStringOrEmpty, normalizeStringEntries } from "../string-coerce.ts";
 import type {
+  GatewayAgentRow,
   SkillStatusEntry,
   SkillStatusReport,
   ToolsCatalogResult,
@@ -27,6 +28,8 @@ import {
   computeSkillReasons,
   renderSkillStatusChips,
 } from "./skills-shared.ts";
+
+type ModelAgent = NonNullable<GatewayAgentRow["modelAgents"]>[number];
 
 function renderToolMetaBadges(labels: string[]) {
   if (labels.length === 0) {
@@ -690,6 +693,7 @@ export function renderAgentTools(params: {
 
 export function renderAgentSkills(params: {
   agentId: string;
+  modelAgents: ModelAgent[];
   report: SkillStatusReport | null;
   loading: boolean;
   error: string | null;
@@ -702,6 +706,7 @@ export function renderAgentSkills(params: {
   onFilterChange: (next: string) => void;
   onRefresh: () => void;
   onToggle: (agentId: string, skillName: string, enabled: boolean) => void;
+  onModelToggle: (agentId: string, modelId: string, skillName: string, enabled: boolean) => void;
   onClear: (agentId: string) => void;
   onDisableAll: (agentId: string) => void;
   onConfigReload: () => void;
@@ -841,7 +846,9 @@ export function renderAgentSkills(params: {
                   allowSet,
                   usingAllowlist,
                   editable,
+                  modelAgents: params.modelAgents,
                   onToggle: params.onToggle,
+                  onModelToggle: params.onModelToggle,
                 }),
               )}
             </div>
@@ -857,7 +864,9 @@ function renderAgentSkillGroup(
     allowSet: Set<string>;
     usingAllowlist: boolean;
     editable: boolean;
+    modelAgents: ModelAgent[];
     onToggle: (agentId: string, skillName: string, enabled: boolean) => void;
+    onModelToggle: (agentId: string, modelId: string, skillName: string, enabled: boolean) => void;
   },
 ) {
   const collapsedByDefault = group.id === "workspace" || group.id === "built-in";
@@ -874,7 +883,9 @@ function renderAgentSkillGroup(
             allowSet: params.allowSet,
             usingAllowlist: params.usingAllowlist,
             editable: params.editable,
+            modelAgents: params.modelAgents,
             onToggle: params.onToggle,
+            onModelToggle: params.onModelToggle,
           }),
         )}
       </div>
@@ -889,7 +900,9 @@ function renderAgentSkillRow(
     allowSet: Set<string>;
     usingAllowlist: boolean;
     editable: boolean;
+    modelAgents: ModelAgent[];
     onToggle: (agentId: string, skillName: string, enabled: boolean) => void;
+    onModelToggle: (agentId: string, modelId: string, skillName: string, enabled: boolean) => void;
   },
 ) {
   const enabled = params.usingAllowlist ? params.allowSet.has(skill.name) : true;
@@ -907,6 +920,7 @@ function renderAgentSkillRow(
         ${reasons.length > 0
           ? html`<div class="muted" style="margin-top: 6px;">Reason: ${reasons.join(", ")}</div>`
           : nothing}
+        ${renderModelSkillAccess(skill, params)}
       </div>
       <div class="list-meta">
         <label class="cfg-toggle">
@@ -922,4 +936,65 @@ function renderAgentSkillRow(
       </div>
     </div>
   `;
+}
+
+function renderModelSkillAccess(
+  skill: SkillStatusEntry,
+  params: {
+    agentId: string;
+    editable: boolean;
+    modelAgents: ModelAgent[];
+    onModelToggle: (agentId: string, modelId: string, skillName: string, enabled: boolean) => void;
+  },
+) {
+  if (params.modelAgents.length === 0) {
+    return nothing;
+  }
+  return html`
+    <div class="agent-model-skill-access" style="margin-top: 10px;">
+      <div class="label" style="margin-bottom: 6px;">Model access</div>
+      <div class="agent-model-skill-access-grid">
+        ${params.modelAgents.map((modelAgent) => {
+          const enabled = modelAgent.skills.effective.includes(skill.name);
+          const disabled = (modelAgent.skills.disabled ?? []).includes(skill.name);
+          const source = formatModelSkillSource(skill.name, modelAgent);
+          return html`
+            <label class="agent-model-skill-toggle">
+              <span class="agent-model-skill-toggle__main">
+                <span class="mono">${modelAgent.label}</span>
+                <span class="muted">${disabled ? "Disabled" : source}</span>
+              </span>
+              <span class="cfg-toggle">
+                <input
+                  type="checkbox"
+                  .checked=${enabled}
+                  ?disabled=${!params.editable}
+                  @change=${(e: Event) =>
+                    params.onModelToggle(
+                      params.agentId,
+                      modelAgent.id,
+                      skill.name,
+                      (e.target as HTMLInputElement).checked,
+                    )}
+                />
+                <span class="cfg-toggle__track"></span>
+              </span>
+            </label>
+          `;
+        })}
+      </div>
+    </div>
+  `;
+}
+
+function formatModelSkillSource(skillName: string, modelAgent: ModelAgent) {
+  if (!modelAgent.skills.effective.includes(skillName)) {
+    return "Off";
+  }
+  const sources = [
+    modelAgent.skills.global.includes(skillName) ? "global" : null,
+    modelAgent.skills.provider.includes(skillName) ? "provider" : null,
+    modelAgent.skills.model.includes(skillName) ? "model" : null,
+  ].filter(Boolean);
+  return sources.length > 0 ? sources.join(" + ") : "enabled";
 }

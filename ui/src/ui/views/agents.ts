@@ -116,6 +116,12 @@ export type AgentsProps = {
   onSkillsFilterChange: (next: string) => void;
   onSkillsRefresh: () => void;
   onAgentSkillToggle: (agentId: string, skillName: string, enabled: boolean) => void;
+  onAgentModelSkillToggle: (
+    agentId: string,
+    modelId: string,
+    skillName: string,
+    enabled: boolean,
+  ) => void;
   onAgentSkillsClear: (agentId: string) => void;
   onAgentSkillsDisableAll: (agentId: string) => void;
   onSetDefault: (agentId: string) => void;
@@ -288,6 +294,7 @@ export function renderAgents(props: AgentsProps) {
               ${props.activePanel === "skills"
                 ? renderAgentSkills({
                     agentId: selectedAgent.id,
+                    modelAgents: selectedAgent.modelAgents ?? [],
                     report: props.agentSkills.report,
                     loading: props.agentSkills.loading,
                     error: props.agentSkills.error,
@@ -300,6 +307,7 @@ export function renderAgents(props: AgentsProps) {
                     onFilterChange: props.onSkillsFilterChange,
                     onRefresh: props.onSkillsRefresh,
                     onToggle: props.onAgentSkillToggle,
+                    onModelToggle: props.onAgentModelSkillToggle,
                     onClear: props.onAgentSkillsClear,
                     onDisableAll: props.onAgentSkillsDisableAll,
                     onConfigReload: props.onConfigReload,

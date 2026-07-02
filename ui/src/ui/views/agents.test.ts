@@ -136,6 +136,7 @@ function createProps(overrides: Partial<AgentsProps> = {}): AgentsProps {
     onSkillsFilterChange: () => undefined,
     onSkillsRefresh: () => undefined,
     onAgentSkillToggle: () => undefined,
+    onAgentModelSkillToggle: () => undefined,
     onAgentSkillsClear: () => undefined,
     onAgentSkillsDisableAll: () => undefined,
     onSetDefault: () => undefined,
@@ -429,6 +430,107 @@ describe("renderAgents", () => {
 
     expect(directText(skillsTab)).toBe("Skills");
     expect(skillsTab.querySelector(".agent-tab-count")?.textContent).toBe("1");
+  });
+
+  it("renders model-level skill access toggles in the Skills tab", async () => {
+    const container = document.createElement("div");
+    const onAgentModelSkillToggle = vi.fn();
+
+    render(
+      renderAgents(
+        createProps({
+          activePanel: "skills",
+          selectedAgentId: "beta",
+          config: {
+            form: { agents: { defaults: {} } },
+            loading: false,
+            saving: false,
+            dirty: false,
+          },
+          agentsList: {
+            defaultId: "beta",
+            mainKey: "main",
+            scope: "workspace",
+            agents: [
+              {
+                id: "beta",
+                name: "Beta",
+                modelAgents: [
+                  {
+                    id: "openai/gpt-5.5",
+                    provider: "openai",
+                    model: "gpt-5.5",
+                    label: "openai/gpt-5.5",
+                    role: "primary",
+                    skills: {
+                      global: ["Repo Skill"],
+                      provider: [],
+                      model: [],
+                      disabledProvider: [],
+                      disabledModel: [],
+                      disabled: [],
+                      effective: ["Repo Skill"],
+                    },
+                  },
+                  {
+                    id: "ollama/qwen3.5:4b-32k",
+                    provider: "ollama",
+                    model: "qwen3.5:4b-32k",
+                    label: "ollama/qwen3.5:4b-32k",
+                    role: "fallback",
+                    skills: {
+                      global: ["Repo Skill"],
+                      provider: [],
+                      model: [],
+                      disabledProvider: [],
+                      disabledModel: ["Repo Skill"],
+                      disabled: ["Repo Skill"],
+                      effective: [],
+                    },
+                  },
+                ],
+              } as never,
+            ],
+          },
+          agentSkills: {
+            report: {
+              workspaceDir: "/tmp/workspace",
+              managedSkillsDir: "/tmp/skills",
+              skills: [createSkill()],
+            },
+            loading: false,
+            error: null,
+            agentId: "beta",
+            filter: "",
+          },
+          onAgentModelSkillToggle,
+        }),
+      ),
+      container,
+    );
+
+    await Promise.resolve();
+
+    const modelToggles = container.querySelectorAll<HTMLInputElement>(
+      ".agent-model-skill-toggle input",
+    );
+    expect(modelToggles).toHaveLength(2);
+    expect(modelToggles[0]?.checked).toBe(true);
+    expect(modelToggles[1]?.checked).toBe(false);
+    expect(container.textContent).toContain("openai/gpt-5.5");
+    expect(container.textContent).toContain("ollama/qwen3.5:4b-32k");
+    expect(container.textContent).toContain("Disabled");
+
+    const qwenToggle = modelToggles[1]!;
+    qwenToggle.checked = true;
+    qwenToggle.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(onAgentModelSkillToggle).toHaveBeenCalledWith(
+      "beta",
+      "ollama/qwen3.5:4b-32k",
+      "Repo Skill",
+      true,
+    );
   });
 
   it("keeps the Cron Jobs tab label while localizing channel refresh never state", async () => {

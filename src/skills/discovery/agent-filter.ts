@@ -11,8 +11,13 @@ export type EffectiveAgentSkillRules = {
   global: string[];
   provider: string[];
   model: string[];
+  disabledProvider: string[];
+  disabledModel: string[];
+  disabled: string[];
   providerKey?: string;
   modelKey?: string;
+  disabledProviderKey?: string;
+  disabledModelKey?: string;
   effective: string[];
 };
 
@@ -74,8 +79,28 @@ export function resolveEffectiveAgentSkillRules(
   }
   const agentEntry = resolveAgentEntry(cfg, agentId);
   if (agentEntry && Object.hasOwn(agentEntry, "skills")) {
-    const effective = dedupeSkills(agentEntry.skills ?? []);
-    return { global: effective, provider: [], model: [], effective };
+    const global = dedupeSkills(agentEntry.skills ?? []);
+    const disabledProvider = readScopedSkills(
+      cfg.agents?.defaults?.disabledSkillsByProvider,
+      [modelIdentity?.provider?.trim() ?? ""].filter(Boolean),
+    );
+    const disabledModel = readScopedSkills(
+      cfg.agents?.defaults?.disabledSkillsByModel,
+      resolveModelSkillKeys(modelIdentity?.provider, modelIdentity?.model),
+    );
+    const disabled = dedupeSkills([...disabledProvider.skills, ...disabledModel.skills]);
+    const disabledSet = new Set(disabled);
+    return {
+      global,
+      provider: [],
+      model: [],
+      disabledProvider: disabledProvider.skills,
+      disabledModel: disabledModel.skills,
+      disabled,
+      ...(disabledProvider.key ? { disabledProviderKey: disabledProvider.key } : {}),
+      ...(disabledModel.key ? { disabledModelKey: disabledModel.key } : {}),
+      effective: global.filter((skill) => !disabledSet.has(skill)),
+    };
   }
 
   const defaults = cfg.agents?.defaults;
@@ -88,14 +113,31 @@ export function resolveEffectiveAgentSkillRules(
     defaults?.skillsByModel,
     resolveModelSkillKeys(modelIdentity?.provider, modelIdentity?.model),
   );
+  const disabledProvider = readScopedSkills(
+    defaults?.disabledSkillsByProvider,
+    [modelIdentity?.provider?.trim() ?? ""].filter(Boolean),
+  );
+  const disabledModel = readScopedSkills(
+    defaults?.disabledSkillsByModel,
+    resolveModelSkillKeys(modelIdentity?.provider, modelIdentity?.model),
+  );
+  const disabled = dedupeSkills([...disabledProvider.skills, ...disabledModel.skills]);
+  const disabledSet = new Set(disabled);
 
   return {
     global,
     provider: provider.skills,
     model: model.skills,
+    disabledProvider: disabledProvider.skills,
+    disabledModel: disabledModel.skills,
+    disabled,
     ...(provider.key ? { providerKey: provider.key } : {}),
     ...(model.key ? { modelKey: model.key } : {}),
-    effective: dedupeSkills([...global, ...provider.skills, ...model.skills]),
+    ...(disabledProvider.key ? { disabledProviderKey: disabledProvider.key } : {}),
+    ...(disabledModel.key ? { disabledModelKey: disabledModel.key } : {}),
+    effective: dedupeSkills([...global, ...provider.skills, ...model.skills]).filter(
+      (skill) => !disabledSet.has(skill),
+    ),
   };
 }
 

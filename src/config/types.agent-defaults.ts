@@ -262,6 +262,10 @@ export type AgentDefaultsConfig = {
   skillsByProvider?: Record<string, string[]>;
   /** Optional default skills enabled only when the active provider/model key matches. */
   skillsByModel?: Record<string, string[]>;
+  /** Optional default skills disabled when the active model provider matches. */
+  disabledSkillsByProvider?: Record<string, string[]>;
+  /** Optional default skills disabled when the active provider/model key matches. */
+  disabledSkillsByModel?: Record<string, string[]>;
   /** Silent-reply policy by conversation type. */
   silentReply?: SilentReplyPolicyShape;
   /** Optional repository root for system prompt runtime line (overrides auto-detect). */

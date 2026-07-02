@@ -85,6 +85,29 @@ describe("agent defaults schema", () => {
     );
   });
 
+  it("accepts model-scoped skill enable and disable maps", () => {
+    const defaults = AgentDefaultsSchema.parse({
+      skills: ["global-skill"],
+      skillsByProvider: {
+        ollama: ["provider-skill"],
+      },
+      skillsByModel: {
+        "ollama/qwen3.5:4b-32k": ["qwen-skill"],
+      },
+      disabledSkillsByProvider: {
+        openai: ["local-only-skill"],
+      },
+      disabledSkillsByModel: {
+        "google-vertex/gemini-3-flash-preview": ["global-skill"],
+      },
+    })!;
+
+    expect(defaults.skillsByModel?.["ollama/qwen3.5:4b-32k"]).toEqual(["qwen-skill"]);
+    expect(defaults.disabledSkillsByModel?.["google-vertex/gemini-3-flash-preview"]).toEqual([
+      "global-skill",
+    ]);
+  });
+
   it("accepts imageGenerationModel timeoutMs", () => {
     const defaults = AgentDefaultsSchema.parse({
       imageGenerationModel: {

@@ -32,7 +32,51 @@ describe("resolveEffectiveAgentSkillRules", () => {
       providerKey: "ollama",
       model: ["model-a", "provider-a"],
       modelKey: "ollama/qwen3.5:4b-32k",
+      disabledProvider: [],
+      disabledModel: [],
+      disabled: [],
       effective: ["global-a", "provider-a", "model-a"],
+    });
+  });
+
+  it("removes disabled provider and model-scoped skills from the effective list", () => {
+    const cfg = {
+      agents: {
+        defaults: {
+          skills: ["global-a", "global-b"],
+          skillsByProvider: {
+            ollama: ["provider-a"],
+          },
+          skillsByModel: {
+            "ollama/qwen3.5:4b-32k": ["model-a"],
+          },
+          disabledSkillsByProvider: {
+            ollama: ["global-b"],
+          },
+          disabledSkillsByModel: {
+            "ollama/qwen3.5:4b-32k": ["provider-a"],
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(
+      resolveEffectiveAgentSkillRules(cfg, "main", {
+        provider: "ollama",
+        model: "qwen3.5:4b-32k",
+      }),
+    ).toEqual({
+      global: ["global-a", "global-b"],
+      provider: ["provider-a"],
+      providerKey: "ollama",
+      model: ["model-a"],
+      modelKey: "ollama/qwen3.5:4b-32k",
+      disabledProvider: ["global-b"],
+      disabledProviderKey: "ollama",
+      disabledModel: ["provider-a"],
+      disabledModelKey: "ollama/qwen3.5:4b-32k",
+      disabled: ["global-b", "provider-a"],
+      effective: ["global-a", "model-a"],
     });
   });
 

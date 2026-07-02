@@ -1618,6 +1618,30 @@ export function renderApp(state: AppViewState) {
       existing,
     };
   };
+  const readAgentDefaultsStringMapEntry = (mapKey: string, entryKey: string): string[] => {
+    const defaults = (
+      getCurrentConfigValue() as { agents?: { defaults?: Record<string, unknown> } }
+    )?.agents?.defaults;
+    const map = defaults?.[mapKey];
+    if (!map || typeof map !== "object" || Array.isArray(map)) {
+      return [];
+    }
+    const value = (map as Record<string, unknown>)[entryKey];
+    return Array.isArray(value) ? normalizeStringEntries(value) : [];
+  };
+  const updateAgentDefaultsStringMapEntry = (
+    mapKey: string,
+    entryKey: string,
+    values: string[],
+  ) => {
+    const normalized = normalizeStringEntries(values);
+    const path = ["agents", "defaults", mapKey, entryKey];
+    if (normalized.length > 0) {
+      updateConfigFormValue(state, path, normalized);
+    } else {
+      removeConfigFormValue(state, path);
+    }
+  };
   const cronAgentSuggestions = sortLocaleStrings(
     new Set(
       [
@@ -3393,6 +3417,32 @@ export function renderApp(state: AppViewState) {
                     next.delete(normalizedSkill);
                   }
                   updateConfigFormValue(state, ["agents", "list", index, "skills"], [...next]);
+                },
+                onAgentModelSkillToggle: (_agentId, modelId, skillName, enabled) => {
+                  const normalizedModel = modelId.trim();
+                  const normalizedSkill = skillName.trim();
+                  if (!normalizedModel || !normalizedSkill) {
+                    return;
+                  }
+                  const enabledSkills = new Set(
+                    readAgentDefaultsStringMapEntry("skillsByModel", normalizedModel),
+                  );
+                  const disabledSkills = new Set(
+                    readAgentDefaultsStringMapEntry("disabledSkillsByModel", normalizedModel),
+                  );
+                  if (enabled) {
+                    enabledSkills.add(normalizedSkill);
+                    disabledSkills.delete(normalizedSkill);
+                  } else {
+                    enabledSkills.delete(normalizedSkill);
+                    disabledSkills.add(normalizedSkill);
+                  }
+                  updateAgentDefaultsStringMapEntry("skillsByModel", normalizedModel, [
+                    ...enabledSkills,
+                  ]);
+                  updateAgentDefaultsStringMapEntry("disabledSkillsByModel", normalizedModel, [
+                    ...disabledSkills,
+                  ]);
                 },
                 onAgentSkillsClear: (agentId) => {
                   const index = findAgentIndex(agentId);

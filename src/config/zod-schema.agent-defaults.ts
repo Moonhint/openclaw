@@ -68,6 +68,8 @@ export const AgentDefaultsSchema = z
     skills: z.array(z.string()).optional(),
     skillsByProvider: z.record(z.string(), z.array(z.string())).optional(),
     skillsByModel: z.record(z.string(), z.array(z.string())).optional(),
+    disabledSkillsByProvider: z.record(z.string(), z.array(z.string())).optional(),
+    disabledSkillsByModel: z.record(z.string(), z.array(z.string())).optional(),
     silentReply: SilentReplyPolicyConfigSchema.optional(),
     repoRoot: z.string().optional(),
     promptOverlays: z

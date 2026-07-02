@@ -46,6 +46,7 @@ function renderSkillList(skills: string[]) {
 
 function renderModelAgentDetails(modelAgent: ModelAgent) {
   const skills = modelAgent.skills;
+  const disabledSkills = skills.disabled ?? [];
   return html`
     <div class="agent-model-agent-detail">
       <div class="agents-overview-grid">
@@ -79,6 +80,16 @@ function renderModelAgentDetails(modelAgent: ModelAgent) {
         <div class="agent-model-skill-group">
           <div class="label">Model${skills.modelKey ? ` · ${skills.modelKey}` : ""}</div>
           ${renderSkillList(skills.model)}
+        </div>
+        <div class="agent-model-skill-group">
+          <div class="label">
+            Disabled${skills.disabledModelKey
+              ? ` · ${skills.disabledModelKey}`
+              : skills.disabledProviderKey
+                ? ` · ${skills.disabledProviderKey}`
+                : ""}
+          </div>
+          ${renderSkillList(disabledSkills)}
         </div>
         <div class="agent-model-skill-group">
           <div class="label">Effective</div>
